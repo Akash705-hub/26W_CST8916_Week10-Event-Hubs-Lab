@@ -9,6 +9,7 @@
 #   POST /track         → receives a click event and publishes it to Event Hubs
 #   GET  /dashboard     → serves the live analytics dashboard (dashboard.html)
 #   GET  /api/events    → returns recent events as JSON (polled by the dashboard)
+#   DELETE /api/events/clear → clears the in-memory event buffer
 
 import os
 import json
@@ -284,6 +285,26 @@ def get_events():
         summary[et] = summary.get(et, 0) + 1
 
     return jsonify({"events": recent, "summary": summary, "total": len(recent)}), 200
+
+
+@app.route("/api/events/clear", methods=["DELETE", "POST"])
+def clear_events():
+    """
+    Clear all buffered events from memory.
+    Useful for testing or resetting the dashboard.
+    
+    Note: This only clears the in-memory buffer, not events in Azure Event Hubs.
+    """
+    with _buffer_lock:
+        count = len(_event_buffer)
+        _event_buffer.clear()
+    
+    app.logger.info(f"Cleared {count} events from buffer")
+    return jsonify({
+        "status": "ok",
+        "message": f"Cleared {count} events from buffer",
+        "events_cleared": count
+    }), 200
 
 
 # ---------------------------------------------------------------------------
