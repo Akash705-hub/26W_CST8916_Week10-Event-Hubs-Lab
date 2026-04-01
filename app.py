@@ -49,6 +49,67 @@ MAX_BUFFER = 50
 
 
 # ---------------------------------------------------------------------------
+# Helper – parse User-Agent to extract deviceType, browser, and os
+# ---------------------------------------------------------------------------
+def parse_user_agent(user_agent: str) -> dict:
+    """
+    Parse the User-Agent string to extract device type, browser, and OS.
+    
+    Returns a dict with keys: deviceType, browser, os
+    """
+    if not user_agent:
+        return {
+            "deviceType": "unknown",
+            "browser": "unknown",
+            "os": "unknown"
+        }
+    
+    ua_lower = user_agent.lower()
+    
+    # Detect device type
+    if "mobile" in ua_lower or "android" in ua_lower and "mobile" in ua_lower:
+        device_type = "mobile"
+    elif "tablet" in ua_lower or "ipad" in ua_lower:
+        device_type = "tablet"
+    else:
+        device_type = "desktop"
+    
+    # Detect browser
+    if "edg/" in ua_lower or "edge/" in ua_lower:
+        browser = "Edge"
+    elif "chrome" in ua_lower and "edg" not in ua_lower:
+        browser = "Chrome"
+    elif "firefox" in ua_lower:
+        browser = "Firefox"
+    elif "safari" in ua_lower and "chrome" not in ua_lower:
+        browser = "Safari"
+    elif "opera" in ua_lower or "opr/" in ua_lower:
+        browser = "Opera"
+    else:
+        browser = "unknown"
+    
+    # Detect operating system
+    if "windows" in ua_lower:
+        os_name = "Windows"
+    elif "mac os" in ua_lower or "macos" in ua_lower:
+        os_name = "macOS"
+    elif "android" in ua_lower:
+        os_name = "Android"
+    elif "iphone" in ua_lower or "ipad" in ua_lower or "ios" in ua_lower:
+        os_name = "iOS"
+    elif "linux" in ua_lower:
+        os_name = "Linux"
+    else:
+        os_name = "unknown"
+    
+    return {
+        "deviceType": device_type,
+        "browser": browser,
+        "os": os_name
+    }
+
+
+# ---------------------------------------------------------------------------
 # Helper – send a single event dict to Azure Event Hubs
 # ---------------------------------------------------------------------------
 def send_to_event_hubs(event_dict: dict):
@@ -168,13 +229,20 @@ def track():
     if not request.json:
         abort(400)
 
-    # Enrich the event with a server-side timestamp
+    # Extract User-Agent from request headers
+    user_agent = request.headers.get("User-Agent", "")
+    ua_info = parse_user_agent(user_agent)
+
+    # Enrich the event with a server-side timestamp and User-Agent details
     event = {
         "event_type": request.json.get("event_type", "unknown"),
         "page":       request.json.get("page", "/"),
         "product_id": request.json.get("product_id"),
         "user_id":    request.json.get("user_id", "anonymous"),
         "timestamp":  datetime.now(timezone.utc).isoformat(),
+        "deviceType": ua_info["deviceType"],
+        "browser":    ua_info["browser"],
+        "os":         ua_info["os"],
     }
 
     send_to_event_hubs(event)
