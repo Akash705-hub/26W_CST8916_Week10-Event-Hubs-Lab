@@ -1,5 +1,5 @@
 # CST8916 – Week 10 Lab: Clickstream Analytics with Azure Event Hubs
-#
+# AI is used to enhanced the code
 # This Flask app has two roles:
 #   1. PRODUCER  – receives click events from the browser and sends them to Azure Event Hubs
 #   2. CONSUMER  – reads the last N events from Event Hubs and serves a live dashboard
